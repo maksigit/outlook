@@ -4,6 +4,10 @@ body {
     position: relative;
 }
 
+.connect-button, .close {
+    color: #5eb5b5;
+}
+
 .panel-title {
     background: #ededee;
     padding: 10px 15px;

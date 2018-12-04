@@ -3,6 +3,8 @@ $(function() {
   var redirectUri = 'https://dev.tvmucho.com/outlook/';
   var appId = '1e78ba05-d157-4b65-b0fb-cf466d817992';
   var scopes = 'openid profile User.Read Mail.Read Contacts.Read';
+  // var newWindow = window.open(buildAuthUrl(),"hello", "width=400,height=600");
+  var tempUrl;
 
   var cryptObj = window.crypto || window.msCrypto;
 
@@ -60,9 +62,22 @@ $(function() {
 
         // Redirect to home page
         window.location.hash = '#';
-        showContacts()
+        window.opener.postMessage(JSON.stringify({
+          'message': 'CLOSE_ME',
+          'authState': sessionStorage.tokenExpires,
+          'authNonce': sessionStorage.accessToken,
+          'userDomainType': sessionStorage.userDomainType,
+          'userSigninName': sessionStorage.userSigninName
+        }), '*')
       } else {
         sessionStorage.clear();
+        window.opener.postMessage(JSON.stringify({
+          'message': 'CLOSE_ME',
+          'authState': sessionStorage.tokenExpires,
+          'authNonce': sessionStorage.accessToken,
+          'userDomainType': sessionStorage.userDomainType,
+          'userSigninName': sessionStorage.userSigninName
+        }), '*')
         // Report error
         // window.location.hash = '#error=Invalid+ID+token&error_description=ID+token+failed+validation,+please+try+signing+in+again.';
       }
@@ -119,13 +134,15 @@ $(function() {
         callback(null, error);
       }
     });
+
   }
 
   function buildAuthUrl() {
     // Generate random values for state and nonce
+
     sessionStorage.authState = guid();
     sessionStorage.authNonce = guid();
-    console.log('sessionStorage.authState', sessionStorage.authState)
+    console.log('sessionStorage.authState', sessionStorage.authState);
 
     var authParams = {
       response_type: 'id_token token',
@@ -136,8 +153,8 @@ $(function() {
       nonce: sessionStorage.authNonce,
       response_mode: 'fragment'
     };
-
     return authEndpoint + $.param(authParams);
+
   }
 
   function validateIdToken(callback) {
@@ -269,7 +286,34 @@ $(function() {
       showContacts();
     }
   } else {
-    $('#connect-button').attr('href', buildAuthUrl());
+    var newWindow;
+
+    $('#connect-button').on('click', function () {
+
+      tempUrl = buildAuthUrl();
+      newWindow = window.open(tempUrl,"hello", "width=400,height=600");
+
+    });
+
+    window.addEventListener("message", function(e) {
+      try {
+        var data = JSON.parse(e.data);
+        if (data && data.message === 'CLOSE_ME') {
+          newWindow.close();
+
+          for( var key in data) {
+            sessionStorage.setItem(key, data[key]);
+          }
+          showContacts()
+          $('#connect-button').addClass('hide');
+          $('.close').removeClass('hide');
+
+        }
+      }
+      catch(e)
+      {
+      }
+    });
   }
 
   //function Close
